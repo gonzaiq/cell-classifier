@@ -1,6 +1,7 @@
 import numpy as np
 import anndata as ad
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 import os
 
 data_dir = "data"
@@ -17,6 +18,10 @@ def main():
     adata.obs_names = [f"cell_{i}" for i, _ in enumerate(cells["classes"])]
     adata.var_names = cells["gene_ids"]
     adata.obs["class"] = cells["classes"]
+    # encode classes
+    encoded_labels = LabelEncoder().fit_transform(adata.obs["class"])
+    adata.obs["encoded_class"] = encoded_labels
+    adata.uns["num_classes"] = len(set(encoded_labels))
     print(adata)
 
     # split indices for train, validation, and test
