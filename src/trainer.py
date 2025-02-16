@@ -65,7 +65,7 @@ class CellCLassificationTrainer(pl.LightningModule):
 
         # prediction
         y_hat = y_hat.argmax(dim=1)
-    
+
         self.train_y.append(y.cpu().detach())
         self.train_y_pred.append(y_hat.cpu().detach())
 

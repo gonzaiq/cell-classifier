@@ -86,11 +86,4 @@ class CustomDataset(Dataset):
         x = (x / self.max_value * (self.num_bins-1) ).to(torch.int64)
         x = torch.clamp(x, min=0, max=self.num_bins - 1)  # Ensure valid range
 
-
-        #print("00000000")
-        #print("00000000")
-        #print("00000000")
-        #print("output dataset")
-        #print(x.shape)
-
         return x, y

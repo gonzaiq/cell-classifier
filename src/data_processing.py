@@ -71,6 +71,11 @@ def preprocess_train(
         #adata = adata[:, adata.var["highly_variable"]]
         adata._inplace_subset_var(adata.var["highly_variable"])
 
+        #adata.var_names = adata.var_names[adata.var["highly_variable"]].copy()
+        filtered_var_names = adata.var_names[adata.var["highly_variable"]]
+        adata.var["filtered_var_names"] = filtered_var_names
+        adata.var_names = filtered_var_names
+
     # normalize with total UMI count per cell
     if normalize_per_cell:
         sc.pp.normalize_total(adata)
@@ -78,7 +83,7 @@ def preprocess_train(
     # log transform: adata.X = log(adata.X + 1)
     if log_transform:
         sc.pp.log1p(adata)
-
+    
     # scale to unit variance and shift to zero mean. Return mean and std for normalizing eval set
     if normalize_per_gene:
         X, _mean, _std = sc.pp._scale.scale_array(adata.X, return_mean_std=True)

@@ -5,8 +5,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
 import os
 
 data_pth = "data/cells.npy"
@@ -29,6 +27,10 @@ def main():
     print(adata)
     print(f"Min value: {adata.X.min()}, Max value: {adata.X.max()}")
 
+    # Apply log1p transformation
+    adata_log = sc.pp.log1p(adata, copy=True)
+    print(f"After log1p - Min value: {adata_log.X.min()}, Max value: {adata_log.X.max()}")
+
     # Compute QC metrics
     adata.var["mt"] = adata.var_names.str.startswith("MT-")  # Identify mitochondrial genes
     sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], percent_top=None, log1p=True, inplace=True)
@@ -38,6 +40,21 @@ def main():
     print(adata.obs.head())
 
     print(adata.var.head())
+
+    # visualize genes and cells
+    plt.figure(figsize=(8, 6))
+    sc.pl.heatmap(adata_log, var_names=adata.var_names, groupby="class", cmap="viridis")
+    plt.xlabel("Genes")
+    plt.ylabel("Cells")
+    plt.savefig(os.path.join(figs_dir, "genes_cells_heatmap_log.png"))
+    plt.close()
+
+    plt.figure(figsize=(8, 6))
+    sc.pl.heatmap(adata, var_names=adata.var_names, groupby="class", cmap="viridis")
+    plt.xlabel("Genes")
+    plt.ylabel("Cells")
+    plt.savefig(os.path.join(figs_dir, "genes_cells_heatmap.png"))
+    plt.close()
 
     # highly expressive genes
     plt.figure(figsize=(6,4))
@@ -96,14 +113,6 @@ def main():
     ax = plt.gca()
     ax.plot([5, 9], [5, 9], "--", color="black", linewidth=1)
     plt.savefig(os.path.join(figs_dir, "total_counts_n_genes_by_count_joint.png"))
-    plt.close()
-
-    # visualize genes and cells
-    plt.figure(figsize=(8, 6))
-    sc.pl.heatmap(adata, var_names=adata.var_names, groupby="class", cmap="viridis")
-    plt.xlabel("Genes")
-    plt.ylabel("Cells")
-    plt.savefig(os.path.join(figs_dir, "genes_cells_heatmap.png"))
     plt.close()
 
     # pca plot
