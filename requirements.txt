@@ -1,4 +1,12 @@
+aiohttp==3.11.12
+comet_ml==3.49.0
+configobj==5.0.9
 gdown==5.2.0
 pip==25.0.1
 PySocks==1.7.1
+python-dotenv==1.0.1
+pytorch-lightning==2.5.0.post0
 scanpy==1.10.4
+scikit-misc==0.5.1
+torchvision==0.21.0
+wandb==0.19.6
