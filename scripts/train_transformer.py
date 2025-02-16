@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.callbacks import TQDMProgressBar
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 import scanpy as sc
 import os
 import pickle
@@ -25,11 +25,11 @@ from src.dataset import CustomDataset
 
 data_dir = "data"
 models_dir = "models"
-keep_ratio = 0.1
+keep_ratio = 0.01
 
 def train_and_validate(max_epochs):
 
-    train_bs = 8
+    train_bs = 32
     valid_bs = 8
     num_workers = 4
 
@@ -37,8 +37,10 @@ def train_and_validate(max_epochs):
     data_pth = os.path.join(data_dir, 'cell_w_split.h5ad')
 
     # settings
-    num_expression_levels = 10
-    embed_dim = 64
+    num_expression_levels = 20 #10
+    embed_dim = 64 # 200
+    num_layers = 6 # 2
+    base_lr = 1e-3
 
     # initialize Comet experiment
     project_name = "cell-classif"
@@ -77,8 +79,11 @@ def train_and_validate(max_epochs):
         keep_ratio=keep_ratio
         )
 
+    # create balanced dataloader for training
+    sampler = WeightedRandomSampler(weights=train_dataset.sample_weights, num_samples=len(train_dataset.sample_weights), replacement=True)
+
     # initialize dataloaders
-    train_dataloader = DataLoader(train_dataset, batch_size=train_bs, shuffle=True, num_workers=num_workers)
+    train_dataloader = DataLoader(train_dataset, batch_size=train_bs, sampler=sampler, num_workers=num_workers)
     valid_dataloader = DataLoader(valid_dataset, batch_size=valid_bs, shuffle=False, num_workers=num_workers)
 
     # Model initialization
@@ -86,19 +91,19 @@ def train_and_validate(max_epochs):
         num_expression_levels=num_expression_levels,
         embed_dim=embed_dim, 
         num_classes=train_dataset.num_classes, 
-        num_layers=2, 
+        num_layers=num_layers, 
         fc_hidden_dim=embed_dim, 
         num_heads=8)
     
     trainer_module = CellCLassificationTrainer(
         model=model,
-        criterion=nn.CrossEntropyLoss(),
-        base_lr=1e-3
+        criterion=nn.CrossEntropyLoss(train_dataset.class_weights),
+        base_lr=base_lr
     )
 
     trainer = Trainer(
         max_epochs=max_epochs, 
-        val_check_interval=100,
+        val_check_interval=1.0,
         logger=comet_logger,
         callbacks=[progress_bar],
         )
@@ -112,4 +117,4 @@ def train_and_validate(max_epochs):
 
 if __name__ == "__main__":
 
-    train_and_validate(max_epochs=10)
+    train_and_validate(max_epochs=1000)

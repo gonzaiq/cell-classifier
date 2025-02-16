@@ -34,7 +34,7 @@ class TransformerClassifier(nn.Module):
 
         # classify (using the output of the class token)
         x = self.linear(x[:, 0, :])  # Only use the output corresponding to the class token (first token)
-        x = self.softmax(x)
+        #x = self.softmax(x)
         
         return x
     

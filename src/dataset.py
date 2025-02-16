@@ -64,6 +64,13 @@ class CustomDataset(Dataset):
         self.num_bins = num_bins
         self.max_value = max_value
 
+
+        # Calculate class frequencies
+        self.labels = self.data.obs["encoded_class"].values
+        class_counts = torch.bincount(torch.tensor(self.labels))
+        self.class_weights = 1. / class_counts.float()
+        self.sample_weights = self.class_weights[torch.tensor(self.labels)]  
+
     def __len__(self):
         """Returns the number of samples in the dataset"""
         return len(self.data)
