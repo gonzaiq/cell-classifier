@@ -1,9 +1,20 @@
 
 import torch.nn as nn
 import torch
+from src.attention import CustomMultiheadAttention
 
 class TransformerClassifier(nn.Module):
-    def __init__(self, num_expression_levels: int, embed_dim: int, num_classes: int, num_layers: int, fc_hidden_dim: int, num_heads: int):
+
+    def __init__(
+            self, 
+            num_expression_levels: int, 
+            embed_dim: int, 
+            num_classes: int, 
+            num_layers: int, 
+            fc_hidden_dim: int, 
+            num_heads: int, 
+            use_custom_attention: bool = True):
+
         super().__init__()
 
         # gene expression embedding
@@ -13,7 +24,7 @@ class TransformerClassifier(nn.Module):
         self.class_token = nn.Parameter(torch.zeros(1, 1, embed_dim))  # Shape: (1, 1, embed_dim)
 
         # transformer layers
-        self.layers = nn.ModuleList([TransformerLayer(embed_dim, fc_hidden_dim, num_heads) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([TransformerLayer(embed_dim, fc_hidden_dim, num_heads, use_custom_attention=use_custom_attention) for _ in range(num_layers)])
 
         # linear classification layer
         self.linear = nn.Linear(embed_dim, num_classes)
@@ -39,9 +50,14 @@ class TransformerClassifier(nn.Module):
         return x
     
 class TransformerLayer(nn.Module):
-    def __init__(self, embed_dim: int, hidden_dim: int, num_heads: int, drop_prob: float = 0.0):
+
+    def __init__(self, embed_dim: int, hidden_dim: int, num_heads: int, drop_prob: float = 0.0, use_custom_attention: bool = True):
+
         super().__init__()
-        self.attn = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads, batch_first=True)
+        if use_custom_attention:
+            self.attn = CustomMultiheadAttention(embed_dim=embed_dim, num_heads=num_heads)
+        else:
+            self.attn = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads, batch_first=True)
         self.linear1 = nn.Linear(embed_dim, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim, embed_dim)
         self.norm1 = nn.LayerNorm(embed_dim)
