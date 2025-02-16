@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch import nn
 from typing import Callable
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, f1_score
 
 class CellCLassificationTrainer(pl.LightningModule):
     def __init__(self, model, criterion: Callable = F.cross_entropy, base_lr: float = 1e-3):
@@ -84,18 +84,42 @@ class CellCLassificationTrainer(pl.LightningModule):
 
         self.val_y.append(y.cpu().detach())
         self.val_y_pred.append(y_hat.cpu().detach())
+    
+    def get_metrics(self, y_pred, y_true):
+
+        # accuracy
+        acc = (y_pred == y_true).float().mean().item()
+
+        # f1 scores
+        f1_macro = f1_score(y_true, y_pred, average="macro")
+        f1_micro = f1_score(y_true, y_pred, average="macro")
+        f1_weighted = f1_score(y_true, y_pred, average="weighted")
+
+        # confusion matrix
+        cm = confusion_matrix(y_true, y_pred).tolist()
+
+        out = {
+            "acc": acc,
+            "f1_macro": f1_macro,
+            "f1_micro": f1_micro,
+            "f1_weighted": f1_weighted,
+            "cm": cm
+        }
+
+        return out
 
     def on_train_epoch_end(self):
         
         y_pred = torch.cat(self.train_y_pred)
-        y = torch.cat(self.train_y)
+        y_true = torch.cat(self.train_y)
 
-        acc = (y_pred == y).float().mean()    
-        self.log("train_acc", acc.item())
+        metrics = self.get_metrics(y_pred, y_true)
 
-        # Calculate confusion matrix
-        cm = confusion_matrix(y, y_pred).tolist()
-        self.logger.experiment.log_confusion_matrix(matrix=cm, step=self.current_epoch, title="train_cm")
+        for name, value in metrics.items():
+            if name == "cm":
+                self.logger.experiment.log_confusion_matrix(matrix=value, step=self.current_epoch, title="train_cm")
+            else:
+                self.log(f"train_{name}", value)
 
         # reset metrics
         self.init_train_metrics()
@@ -103,32 +127,37 @@ class CellCLassificationTrainer(pl.LightningModule):
     def on_validation_epoch_end(self):
 
         y_pred = torch.cat(self.val_y_pred)
-        y = torch.cat(self.val_y)
+        y_true = torch.cat(self.val_y)
 
-        acc = (y_pred == y).float().mean()    
         loss = np.mean(self.loss_val)
-    
-        self.log("val_loss", loss.item())
-        self.log("val_acc", acc.item())
+        self.log(f"val_loss", loss)
 
-        # Calculate confusion matrix
-        cm = confusion_matrix(y, y_pred).tolist()
-        self.logger.experiment.log_confusion_matrix(matrix=cm, step=self.current_epoch, title="val_cm")
+        metrics = self.get_metrics(y_pred, y_true)
+
+        for name, value in metrics.items():
+            if name == "cm":
+                self.logger.experiment.log_confusion_matrix(matrix=value, step=self.current_epoch, title="val_cm")
+            else:
+                self.log(f"val_{name}", value)
 
         # reset metrics
         self.init_validation_metrics()
 
     def on_test_epoch_end(self):
 
-        acc = (self.test_y_pred == self.test_y).mean()    
-        loss = torch.cat(self.loss_test).mean()
+        y_pred = torch.cat(self.test_y_pred)
+        y_true = torch.cat(self.test_y)
 
-        self.log("test_loss", loss)
-        self.log("test_acc", acc)
-    
-        # Calculate confusion matrix
-        cm = confusion_matrix(self.test_y, self.test_y_pred).tolist()
-        self.logger.experiment.log_confusion_matrix(matrix=cm, step=self.current_epoch, title="test_cm")
+        loss = np.mean(self.loss_test)
+        self.log(f"test_loss", loss)
+
+        metrics = self.get_metrics(y_pred, y_true)
+
+        for name, value in metrics.items():
+            if name == "cm":
+                self.logger.experiment.log_confusion_matrix(matrix=value, step=self.current_epoch, title="test_cm")
+            else:
+                self.log(f"test_{name}", value)
 
         # reset metrics
         self.init_test_metrics()

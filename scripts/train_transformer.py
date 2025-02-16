@@ -39,8 +39,8 @@ def train_and_validate(max_epochs):
     # settings
     num_expression_levels = 20 #10
     embed_dim = 64 # 200
-    num_layers = 6 # 2
-    base_lr = 1e-3
+    num_layers = 1 # 2
+    base_lr = 1e-4
 
     # initialize Comet experiment
     project_name = "cell-classif"
