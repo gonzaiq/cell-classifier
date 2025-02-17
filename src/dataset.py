@@ -19,20 +19,24 @@ class CustomDataset(Dataset):
             std_per_gene:  Optional[np.ndarray] = None,
             max_value: int = 260,
             num_bins: int = 10,
-            keep_ratio: float = 1.0
+            keep_ratio: float = 1.0,
+            use_precomputed_stats_and_features: bool = True
             ):
 
         assert split in ["train", "valid", "test"], f"Split {split} is not supported"
 
-        if split == "train":
-            assert genes_to_keep is None, "genes_to_keep should not be provided for train split"
-            assert mean_per_gene is None, "mean_per_gene should not be provided for train split"
-            assert std_per_gene is None, "std_per_gene should not be provided for train split"
-        elif args_normalization["filter_top_genes"] or args_normalization["filter_min_counts"]:
-            assert genes_to_keep is not None, "genes_to_keep should be provided for validation or test sets"
-        elif args_normalization["normalize_per_gene"]:
-            assert mean_per_gene is not None, "mean_per_gene should be provided for validation or test sets"
-            assert std_per_gene is not None, "std_per_gene should be provided for validation or test sets"
+        if use_precomputed_stats_and_features:
+            if args_normalization["filter_top_genes"] or args_normalization["filter_min_counts"]:
+                assert genes_to_keep is not None, f"genes_to_keep should be provided if use_precomputed_stats_and_features is set, but got {genes_to_keep}"
+            if args_normalization["normalize_per_gene"]:
+                assert mean_per_gene is not None, f"mean_per_gene should be provided if use_precomputed_stats_and_features is set, but got {mean_per_gene}"
+                assert std_per_gene is not None, f"std_per_gene should be provided if use_precomputed_stats_and_features is set, but got {std_per_gene}"
+        else:
+            if args_normalization["filter_top_genes"] or args_normalization["filter_min_counts"]:
+                assert genes_to_keep is None, f"genes_to_keep should not be provided if use_precomputed_stats_and_features is unset, but got {genes_to_keep}"
+            if args_normalization["normalize_per_gene"]:
+                assert mean_per_gene is None, f"mean_per_gene should not be provided if use_precomputed_stats_and_features is unset, but got {mean_per_gene}"
+                assert std_per_gene is None, f"std_per_gene should not be provided if use_precomputed_stats_and_features is unset, but got {std_per_gene}"
 
         self.split = split
 
@@ -46,14 +50,14 @@ class CustomDataset(Dataset):
             self.data = self.data[self.data.obs_names.isin(obs_kept)]
 
         # pre-process data
-        if self.split == "train":
-            self.mean_per_gene, self.std_per_gene = preprocess(self.data, is_train_set=True, **args_normalization)
-            self.genes_to_keep = self.data.var_names
-        else:
+        if use_precomputed_stats_and_features:
             preprocess(self.data, is_train_set=False, genes_to_keep=genes_to_keep, mean_train=mean_per_gene, std_train=std_per_gene, **args_normalization)
             self.genes_to_keep = genes_to_keep 
             self.mean_per_gene = mean_per_gene 
             self.std_per_gene = std_per_gene 
+        else:
+            self.mean_per_gene, self.std_per_gene = preprocess(self.data, is_train_set=True, **args_normalization)
+            self.genes_to_keep = self.data.var_names
 
         self.transform = transforms.Compose([
             transforms.ToTensor(),
