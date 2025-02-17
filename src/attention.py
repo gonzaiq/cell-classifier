@@ -2,6 +2,9 @@ import torch.nn as nn
 import torch
 
 class CustomMultiheadAttention(nn.Module):
+    """"
+    Custom implementation of MultiHeadAttention
+    """
 
     def __init__(self, embed_dim: int, num_heads: int):
         super().__init__()
@@ -13,16 +16,12 @@ class CustomMultiheadAttention(nn.Module):
         self.head_dim = embed_dim // num_heads
 
         # Q, K, V projection matrices
-        """
-        self.q_proj = nn.Parameter(torch.empty((embed_dim, embed_dim)))
-        self.k_proj = nn.Parameter(torch.empty((embed_dim, embed_dim)))
-        self.v_proj = nn.Parameter(torch.empty((embed_dim, embed_dim)))
-        """
-
         self.q_proj = nn.Linear(embed_dim, embed_dim, bias=False)
         self.k_proj = nn.Linear(embed_dim, embed_dim, bias=False)
         self.v_proj = nn.Linear(embed_dim, embed_dim, bias=False)
         self.softmax = nn.Softmax(dim=-1)
+
+        # linear projection
         self.out_linear = nn.Linear(embed_dim, embed_dim)
     
     def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor):

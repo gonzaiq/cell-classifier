@@ -13,6 +13,7 @@ class TransformerClassifier(nn.Module):
             num_layers: int, 
             fc_hidden_dim: int, 
             num_heads: int, 
+            drop_prob: float = 0.0,
             use_custom_attention: bool = True):
 
         super().__init__()
@@ -24,7 +25,7 @@ class TransformerClassifier(nn.Module):
         self.class_token = nn.Parameter(torch.zeros(1, 1, embed_dim))  # Shape: (1, 1, embed_dim)
 
         # transformer layers
-        self.layers = nn.ModuleList([TransformerLayer(embed_dim, fc_hidden_dim, num_heads, use_custom_attention=use_custom_attention) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([TransformerLayer(embed_dim, fc_hidden_dim, num_heads, drop_prob=drop_prob, use_custom_attention=use_custom_attention) for _ in range(num_layers)])
 
         # linear classification layer
         self.linear = nn.Linear(embed_dim, num_classes)

@@ -64,17 +64,13 @@ def preprocess_train(
     # select highly-variable genes
     if filter_top_genes:
         #filter_result = sc.pp.filter_genes_dispersion(adata.X, flavor='cell_ranger', n_top_genes=n_top_genes, log=False)
-        print(f"filtering {n_top_genes} genes")
         sc.pp.highly_variable_genes(adata, n_top_genes=n_top_genes, flavor='seurat_v3')
 
         # subset the genes
-        #adata = adata[:, adata.var["highly_variable"]]
         adata._inplace_subset_var(adata.var["highly_variable"])
 
         #adata.var_names = adata.var_names[adata.var["highly_variable"]].copy()
-        filtered_var_names = adata.var_names[adata.var["highly_variable"]]
-        adata.var["filtered_var_names"] = filtered_var_names
-        adata.var_names = filtered_var_names
+        adata.var_names = adata.var_names[adata.var["highly_variable"]]
 
     # normalize with total UMI count per cell
     if normalize_per_cell:

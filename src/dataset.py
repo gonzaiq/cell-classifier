@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 import anndata as ad
 from typing import List, Optional
 import numpy as np
-from data_processing import preprocess
+from src.data_processing import preprocess
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
 from typing import Dict
