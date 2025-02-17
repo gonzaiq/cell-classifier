@@ -5,9 +5,20 @@ from torch import nn
 from typing import Callable
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score
+from typing import Dict, Any
 
 class CellCLassificationTrainer(pl.LightningModule):
-    def __init__(self, model, criterion: Callable = F.cross_entropy, base_lr: float = 1e-3):
+    """
+    A PyTorch Lightning module for training, validating, and testing a cell classification model.
+    
+    Attributes:
+        model (nn.Module): The neural network model to be trained.
+        base_lr (float): The learning rate for the optimizer.
+        criterion (Callable): The loss function used for training.
+    """
+
+    def __init__(self, model: nn.Module, criterion: Callable = F.cross_entropy, base_lr: float = 1e-3):
+
         super().__init__()
         self.model = model
         self.base_lr = base_lr
@@ -19,43 +30,58 @@ class CellCLassificationTrainer(pl.LightningModule):
         self.init_test_metrics()
 
     def init_train_metrics(self):
+        """Initializes training metrics such as accuracy and confusion matrix components."""
 
         # accuracy
         self.acc_train = []
 
-        # confusion matrix
+        # accumulate for metrics
         self.train_y = []
         self.train_y_pred = []
 
     def init_validation_metrics(self):
+        """Initializes validation metrics including loss, accuracy, and confusion matrix components."""
 
         # loss
         self.loss_val = []
 
-        # accuracy
-        self.acc_val = []
-
-        # confusion matrix
+        # accumulate for metrics
         self.val_y = []
         self.val_y_pred = []
 
     def init_test_metrics(self):
+        """Initializes test metrics including loss, accuracy, and confusion matrix components."""
 
         # loss
         self.loss_test = []
 
-        # accuracy
-        self.acc_test = []
-
-        # confusion matrix
+        # accumulate for metrics
         self.test_y = []
         self.test_y_pred = []
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Performs a forward pass through the model.
+        
+        Args:
+            x: The input tensor.
+        
+        Returns:
+            The model output.
+        """
         return self.model(x)
 
-    def training_step(self, batch, batch_idx):
-
+    def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
+        """
+        Performs a single training step.
+        
+        Args:
+            batch: A batch of training data.
+            batch_idx: The index of the batch.
+        
+        Returns:
+            The computed loss.
+        """
         x, y = batch
         y_hat = self(x)
 
@@ -71,13 +97,20 @@ class CellCLassificationTrainer(pl.LightningModule):
 
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: torch.Tensor, batch_idx: int):
+        """
+        Performs a single validation step.
+        
+        Args:
+            batch: A batch of validation data.
+            batch_idx: The index of the batch.
+        """
         x, y = batch
         y_hat = self(x)
 
         # loss
         loss = self.criterion(y_hat, y)
-        self.loss_val.append(loss)
+        self.loss_val.append(loss.detach().cpu())
 
         # prediction
         y_hat = y_hat.argmax(dim=1)
@@ -85,14 +118,23 @@ class CellCLassificationTrainer(pl.LightningModule):
         self.val_y.append(y.cpu().detach())
         self.val_y_pred.append(y_hat.cpu().detach())
     
-    def get_metrics(self, y_pred, y_true):
+    def get_metrics(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> Dict[str, Any]:
+        """
+        Computes accuracy, F1 scores, and the confusion matrix.
+        
+        Args:
+            y_pred: Predicted labels.
+            y_true: Ground truth labels.
+        
+        Returns:
+            A dictionary containing accuracy, F1-macro, F1-weighted, and confusion matrix.
+        """
 
         # accuracy
         acc = (y_pred == y_true).float().mean().item()
 
         # f1 scores
         f1_macro = f1_score(y_true, y_pred, average="macro")
-        f1_micro = f1_score(y_true, y_pred, average="macro")
         f1_weighted = f1_score(y_true, y_pred, average="weighted")
 
         # confusion matrix
@@ -101,7 +143,6 @@ class CellCLassificationTrainer(pl.LightningModule):
         out = {
             "acc": acc,
             "f1_macro": f1_macro,
-            "f1_micro": f1_micro,
             "f1_weighted": f1_weighted,
             "cm": cm
         }
@@ -109,6 +150,7 @@ class CellCLassificationTrainer(pl.LightningModule):
         return out
 
     def on_train_epoch_end(self):
+        """Computes and logs training metrics at the end of an epoch."""
         
         y_pred = torch.cat(self.train_y_pred)
         y_true = torch.cat(self.train_y)
@@ -117,7 +159,9 @@ class CellCLassificationTrainer(pl.LightningModule):
 
         for name, value in metrics.items():
             if name == "cm":
-                self.logger.experiment.log_confusion_matrix(matrix=value, step=self.current_epoch, title="train_cm")
+                pass
+                # TODO: differentiate train and valid cm in comet interface
+                #self.logger.experiment.log_confusion_matrix(matrix=value, step=self.current_epoch, title="train_cm")
             else:
                 self.log(f"train_{name}", value)
 
@@ -125,6 +169,7 @@ class CellCLassificationTrainer(pl.LightningModule):
         self.init_train_metrics()
 
     def on_validation_epoch_end(self):
+        """Computes and logs validation metrics at the end of an epoch."""
 
         y_pred = torch.cat(self.val_y_pred)
         y_true = torch.cat(self.val_y)
@@ -144,6 +189,7 @@ class CellCLassificationTrainer(pl.LightningModule):
         self.init_validation_metrics()
 
     def on_test_epoch_end(self):
+        """Computes and logs test metrics at the end of an epoch."""
 
         y_pred = torch.cat(self.test_y_pred)
         y_true = torch.cat(self.test_y)
@@ -162,22 +208,27 @@ class CellCLassificationTrainer(pl.LightningModule):
         # reset metrics
         self.init_test_metrics()
 
-    def test_step(self, batch, batch_idx):
-
+    def test_step(self, batch: torch.Tensor, batch_idx: int):
+        """
+        Performs a single test step.
+        
+        Args:
+            batch: A batch of test data.
+            batch_idx: The index of the batch.
+        """
         x, y = batch
         y_hat = self(x)
 
         # loss
         loss = self.criterion(y_hat, y)
         self.loss_test.append(loss)
+    
+        # prediction
+        y_hat = y_hat.argmax(dim=1)
 
-        # acc
-        acc = (y_hat.argmax(dim=1) == y).float().mean()
-        self.acc_test.append(acc)
+        self.test_y.extend(y.cpu().detach())
+        self.test_y_pred.extend(y_hat.cpu().detach())
 
-        # confusion matrix
-        self.test_y.extend(y.cpu().numpy().tolist())
-        self.test_y_pred.extend(y_hat.cpu().numpy().tolist())
-
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> torch.optim.Optimizer:
+        """Configures the optimizer for training."""
         return torch.optim.Adam(self.parameters(), lr=self.base_lr)
