@@ -37,10 +37,10 @@ def train_and_validate(max_epochs):
     data_pth = os.path.join(data_dir, 'cell_w_split.h5ad')
 
     # settings
-    num_expression_levels = 50 #20 #10
+    num_expression_levels = 260 #20 #10
     embed_dim = 512 # 200 64
     num_layers = 1 # 2
-    base_lr = 1e-2
+    base_lr = 1e-3
     weighted_loss = False
     use_custom_attention = True
     num_heads = 8
@@ -72,7 +72,16 @@ def train_and_validate(max_epochs):
 
     max_value = 6 if args_normalization["log_transform"] else 260
     
-    train_dataset = CustomDataset(data_pth, "train", args_normalization, max_value=max_value, num_bins=num_expression_levels, keep_ratio=keep_ratio)
+    train_dataset = CustomDataset(
+        data_pth, 
+        "train", 
+        args_normalization, 
+        max_value=max_value, 
+        num_bins=num_expression_levels, 
+        keep_ratio=keep_ratio, 
+        use_precomputed_stats_and_features=False
+        )
+        
     valid_dataset = CustomDataset(
         data_pth, 
         "valid", 
@@ -82,7 +91,8 @@ def train_and_validate(max_epochs):
         std_per_gene=train_dataset.std_per_gene,
         max_value=max_value,
         num_bins=num_expression_levels,
-        keep_ratio=keep_ratio
+        keep_ratio=keep_ratio,
+        use_precomputed_stats_and_features=True
         )
 
     # create balanced dataloader for training
@@ -111,7 +121,7 @@ def train_and_validate(max_epochs):
         mode="max",
         save_top_k=1,
         dirpath="checkpoints/",
-        filename=f"best_model_embed_dim_{embed_dim}_num_layers_{num_layers}_base_lr_{base_lr}_num_expression_levels_{num_expression_levels}_{train_bs}"
+        filename=f"best_model_embed_dim_{embed_dim}_num_layers_{num_layers}_base_lr_{base_lr}_num_expression_levels_{num_expression_levels}_bs_{train_bs}_valid_init"
     )
 
     # Trainer initialization

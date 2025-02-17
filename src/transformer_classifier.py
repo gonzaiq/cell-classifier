@@ -3,6 +3,19 @@ import torch.nn as nn
 import torch
 from src.attention import CustomMultiheadAttention
 
+class PositionalEncoding(nn.Module):
+    def __init__(self, embed_dim: int, max_len: int = 5000):
+        super().__init__()
+        pe = torch.zeros(max_len, embed_dim)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() * (-torch.log(torch.tensor(10000.0)) / embed_dim))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.pe = nn.Parameter(pe.unsqueeze(0), requires_grad=False)
+    
+    def forward(self, x):
+        return self.pe[:, :x.size(1), :]
+
 class TransformerClassifier(nn.Module):
 
     def __init__(
@@ -21,6 +34,9 @@ class TransformerClassifier(nn.Module):
         # gene expression embedding
         self.exp_embedding = nn.Embedding(num_expression_levels, embed_dim)
 
+        # positional encoding
+        self.pos_encoder = PositionalEncoding(embed_dim)
+
         # class token (learnable parameter)
         self.class_token = nn.Parameter(torch.zeros(1, 1, embed_dim))  # Shape: (1, 1, embed_dim)
 
@@ -29,7 +45,7 @@ class TransformerClassifier(nn.Module):
 
         # linear classification layer
         self.linear = nn.Linear(embed_dim, num_classes)
-        self.softmax = nn.Softmax(dim=1)
+        #self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x: torch.Tensor):
         # embed gene expression
@@ -39,6 +55,9 @@ class TransformerClassifier(nn.Module):
         batch_size = x.shape[0]
         class_token = self.class_token.expand(batch_size, -1, -1)  # Expand the class token to match batch size
         x = torch.cat([class_token, x], dim=1)  # Concatenate class token to the input sequence
+
+        # add positional encoding
+        x += self.pos_encoder(x)
         
         # forward through transformer layers
         for layer in self.layers:
