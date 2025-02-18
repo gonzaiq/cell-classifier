@@ -60,8 +60,16 @@ def train_and_validate(max_iter, args_normalization):
     print(f"Accuracy train: {accuracy * 100:.2f}%")
 
     # save the model
-    with open(os.path.join(models_dir, 'log_reg_classifier.pkl'), 'wb') as f:
-        pickle.dump(classifier, f)
+    model_data = {
+        'classifier': classifier,
+        'mean_train': mean_train,
+        'std_train': std_train,
+        'genes_to_keep': train_set.var_names
+    }
+
+    # Save to a single file
+    with open(os.path.join(models_dir, 'log_reg_classifier_with_stats.pkl'), 'wb') as f:
+        pickle.dump(model_data, f)
 
 if __name__ == "__main__":
 

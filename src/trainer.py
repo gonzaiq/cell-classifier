@@ -6,6 +6,7 @@ from typing import Callable
 import numpy as np
 from sklearn.metrics import confusion_matrix, f1_score
 from typing import Dict, Any
+from pytorch_lightning.loggers import CometLogger
 
 class CellCLassificationTrainer(pl.LightningModule):
     """
@@ -39,6 +40,9 @@ class CellCLassificationTrainer(pl.LightningModule):
         self.train_y = []
         self.train_y_pred = []
 
+        # confusion matrix
+        self.train_cm = None
+
     def init_validation_metrics(self):
         """Initializes validation metrics including loss, accuracy, and confusion matrix components."""
 
@@ -49,6 +53,9 @@ class CellCLassificationTrainer(pl.LightningModule):
         self.val_y = []
         self.val_y_pred = []
 
+        # confusion matrix
+        self.val_cm = None
+
     def init_test_metrics(self):
         """Initializes test metrics including loss, accuracy, and confusion matrix components."""
 
@@ -58,6 +65,9 @@ class CellCLassificationTrainer(pl.LightningModule):
         # accumulate for metrics
         self.test_y = []
         self.test_y_pred = []
+
+        # confusion matrix
+        self.test_cm = None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -160,8 +170,8 @@ class CellCLassificationTrainer(pl.LightningModule):
         for name, value in metrics.items():
             if name == "cm":
                 pass
-                # TODO: differentiate train and valid cm in comet interface
-                #self.logger.experiment.log_confusion_matrix(matrix=value, step=self.current_epoch, title="train_cm")
+                # TODO: differentiate train and valid cm in comet interface (title is not enough)
+                self.train_cm = value
             else:
                 self.log(f"train_{name}", value)
 
@@ -181,7 +191,9 @@ class CellCLassificationTrainer(pl.LightningModule):
 
         for name, value in metrics.items():
             if name == "cm":
-                self.logger.experiment.log_confusion_matrix(matrix=value, step=self.current_epoch, title="val_cm")
+                if isinstance(self.logger, CometLogger):
+                    self.logger.experiment.log_confusion_matrix(matrix=value, step=self.current_epoch, title="val_cm")
+                self.val_cm = value
             else:
                 self.log(f"val_{name}", value)
 
@@ -198,15 +210,17 @@ class CellCLassificationTrainer(pl.LightningModule):
         self.log(f"test_loss", loss)
 
         metrics = self.get_metrics(y_pred, y_true)
-
+        
         for name, value in metrics.items():
             if name == "cm":
-                self.logger.experiment.log_confusion_matrix(matrix=value, step=self.current_epoch, title="test_cm")
+                self.test_cm = value
             else:
                 self.log(f"test_{name}", value)
 
         # reset metrics
         self.init_test_metrics()
+
+        return metrics
 
     def test_step(self, batch: torch.Tensor, batch_idx: int):
         """
@@ -226,8 +240,8 @@ class CellCLassificationTrainer(pl.LightningModule):
         # prediction
         y_hat = y_hat.argmax(dim=1)
 
-        self.test_y.extend(y.cpu().detach())
-        self.test_y_pred.extend(y_hat.cpu().detach())
+        self.test_y.append(y.cpu().detach())
+        self.test_y_pred.append(y_hat.cpu().detach())
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         """Configures the optimizer for training."""
