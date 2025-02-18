@@ -11,6 +11,9 @@ data_pth = "data/cells.npy"
 figs_dir = "figs"
 
 def main():
+    """
+    Performs data analysis of a given annData. Plots are sabed in the figs_dir directory.
+    """
 
     # UMI: Unique Molecular Identifier
 
@@ -77,7 +80,6 @@ def main():
     plt.ylabel("Frequency")
     plt.yscale("log")
     plt.title("Cell class")
-    # Save the plot
     plt.savefig(os.path.join(figs_dir, "cell_classes.png"), bbox_inches="tight")
     plt.close()
 
@@ -88,7 +90,6 @@ def main():
     plt.ylabel("Frequency")
     plt.yscale("log")
     plt.title("Distribution of Cells Detected per Gene")
-    # Save the plot
     plt.savefig(os.path.join(figs_dir, "n_cells_by_counts_histogram.png"), bbox_inches="tight")
     plt.close()
 
@@ -99,7 +100,6 @@ def main():
     plt.ylabel("Frequency")
     plt.yscale("log")
     plt.title("Distribution of Genes Detected per Cell")
-    # Save the plot
     plt.savefig(os.path.join(figs_dir, "n_genes_by_counts_histogram.png"), bbox_inches="tight")
     plt.close()
 
@@ -116,13 +116,9 @@ def main():
     plt.close()
 
     # pca plot
-    #pca = PCA(n_components=2)
     sc.pp.pca(adata, n_comps=2)
-    #X_red = pca.fit_transform(adata.X.toarray())
-    #df = pd.DataFrame(X_red, columns=["PC1", "PC2"])
     df = pd.DataFrame(adata.obsm['X_pca'], columns=["PC1", "PC2"])
     df["class"] = adata.obs["class"].values
-    # Plot with seaborn
     plt.figure(figsize=(8, 6))
     sns.scatterplot(x="PC1", y="PC2", hue="class", data=df, alpha=0.7, palette="Set2")
     plt.xlabel("Principal Component 1")
@@ -142,8 +138,6 @@ def main():
     plt.title("t-SNE Projection Colored by Class")
     plt.savefig(os.path.join(figs_dir, "tsne.png"))
     plt.close()
-
-    print(adata)
 
 if __name__ == "__main__":
     main()

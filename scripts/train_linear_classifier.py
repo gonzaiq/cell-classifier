@@ -21,6 +21,10 @@ keep_ratio = 1
 
 def train_and_validate(max_iter, args_normalization):
 
+    """
+    Perform training and validation of a linear classifier (logistic regression).
+    """
+
     # read data
     adata = ad.read_h5ad(os.path.join(data_dir, 'cell_w_split.h5ad'))
 
@@ -35,17 +39,7 @@ def train_and_validate(max_iter, args_normalization):
     print("number of genes: ", len(train_set.var_names))
     print("number of genes: ", train_set)
     mean_train, std_train = preprocess(train_set, is_train_set=True, **args_normalization)
-    print("number of genes: ", len(train_set.var_names))
-    print("number of genes: ", train_set)
-    print("================")
-    print("================")
-    print("================")
-    print("================")
-    print(type(train_set[10].obs["encoded_class"].iloc[0]))
-    print(train_set[10].obs["encoded_class"].iloc[0])
-    
     preprocess(valid_set, is_train_set=False, genes_to_keep=train_set.var_names, mean_train=mean_train, std_train=std_train, **args_normalization)
-    print("number of genes: ", valid_set)
 
     X_train, y_train = train_set.X, train_set.obs["encoded_class"]
     X_valid, y_valid = valid_set.X, valid_set.obs["encoded_class"]

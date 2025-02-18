@@ -28,6 +28,9 @@ models_dir = "models"
 keep_ratio = 1.0
 
 def train_and_validate(max_epochs):
+    """
+    Performs training and validation of attention-based classifier.
+    """
 
     train_bs = 256 # 256
     valid_bs = 128
@@ -37,14 +40,15 @@ def train_and_validate(max_epochs):
     data_pth = os.path.join(data_dir, 'cell_w_split.h5ad')
 
     # settings
-    num_expression_levels = 260 #20 #10
-    embed_dim = 512 # 200 64
+    num_expression_levels = 50 #20 #10
+    embed_dim = 200 # 200 64
     num_layers = 1 # 2
     base_lr = 1e-3
     weighted_loss = False
     use_custom_attention = True
     num_heads = 8
     fc_hidden_dim = embed_dim * 4
+    drop_prob = 0.1
 
     # initialize Comet experiment
     project_name = "cell-classif"
@@ -121,7 +125,7 @@ def train_and_validate(max_epochs):
         mode="max",
         save_top_k=1,
         dirpath="checkpoints/",
-        filename=f"best_model_embed_dim_{embed_dim}_num_layers_{num_layers}_base_lr_{base_lr}_num_expression_levels_{num_expression_levels}_bs_{train_bs}_valid_init"
+        filename=f"best_model_embed_dim_{embed_dim}_num_layers_{num_layers}_base_lr_{base_lr}_num_expression_levels_{num_expression_levels}_bs_{train_bs}_drop_prob_{drop_prob}"
     )
 
     # Trainer initialization

@@ -4,7 +4,15 @@ import torch
 from src.attention import CustomMultiheadAttention
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, embed_dim: int, max_len: int = 5000):
+    """
+    Implements positional encoding to inject sequence order information into input embeddings.
+    """
+    def __init__(self, embed_dim: int, max_len: int = 20000):
+        """
+        Args:
+            embed_dim (int): Dimension of the embeddings.
+            max_len (int): Maximum sequence length. Default is 20000.
+        """
         super().__init__()
         pe = torch.zeros(max_len, embed_dim)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
@@ -14,10 +22,21 @@ class PositionalEncoding(nn.Module):
         self.pe = nn.Parameter(pe.unsqueeze(0), requires_grad=False)
     
     def forward(self, x):
+        """
+        Adds positional encoding to the input tensor.
+        
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, seq_length, embed_dim).
+        
+        Returns:
+            torch.Tensor: Positional encoding tensor added to input tensor.
+        """
         return self.pe[:, :x.size(1), :]
 
 class TransformerClassifier(nn.Module):
-
+    """
+    Transformer-based classifier for sequence classification tasks.
+    """
     def __init__(
             self, 
             num_expression_levels: int, 
@@ -28,7 +47,17 @@ class TransformerClassifier(nn.Module):
             num_heads: int, 
             drop_prob: float = 0.0,
             use_custom_attention: bool = True):
-
+        """
+        Args:
+            num_expression_levels (int): Number of discrete gene expression levels for embedding.
+            embed_dim (int): Dimension of the embedding vectors.
+            num_classes (int): Number of output classes for classification.
+            num_layers (int): Number of transformer layers.
+            fc_hidden_dim (int): Hidden dimension of the feed-forward network.
+            num_heads (int): Number of attention heads.
+            drop_prob (float): Dropout probability. Default is 0.0.
+            use_custom_attention (bool): Whether to use a custom multihead attention mechanism. Default is True.
+        """
         super().__init__()
 
         # gene expression embedding
@@ -47,7 +76,16 @@ class TransformerClassifier(nn.Module):
         self.linear = nn.Linear(embed_dim, num_classes)
         #self.softmax = nn.Softmax(dim=1)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the Transformer classifier.
+        
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, seq_length).
+        
+        Returns:
+            torch.Tensor: Output tensor of shape (batch_size, num_classes).
+        """
         # embed gene expression
         x = self.exp_embedding(x)
         
@@ -70,9 +108,18 @@ class TransformerClassifier(nn.Module):
         return x
     
 class TransformerLayer(nn.Module):
-
+    """
+    Single Transformer layer with attention and feed-forward sublayers.
+    """
     def __init__(self, embed_dim: int, hidden_dim: int, num_heads: int, drop_prob: float = 0.0, use_custom_attention: bool = True):
-
+        """
+        Args:
+            embed_dim (int): Dimension of the embeddings.
+            hidden_dim (int): Dimension of the feed-forward hidden layer.
+            num_heads (int): Number of attention heads.
+            drop_prob (float): Dropout probability. Default is 0.0.
+            use_custom_attention (bool): Whether to use a custom multihead attention mechanism. Default is True.
+        """
         super().__init__()
         if use_custom_attention:
             self.attn = CustomMultiheadAttention(embed_dim=embed_dim, num_heads=num_heads)
@@ -85,8 +132,16 @@ class TransformerLayer(nn.Module):
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(p=drop_prob)
 
-    def forward(self, x):
-
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the Transformer layer.
+        
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, seq_length, embed_dim).
+        
+        Returns:
+            torch.Tensor: Output tensor of shape (batch_size, seq_length, embed_dim).
+        """
         # compute attention
         x_res, _ = self.attn(x, x, x)
 

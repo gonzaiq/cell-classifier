@@ -20,7 +20,19 @@ def scale_array(
     mean: np.ndarray,
     std: np.ndarray
     ) -> np.ndarray:
+    """
+    Scale the input array with a given mean and std.
 
+    Args:
+        X (np.ndarray): Input data array with shape (n_samples, n_features). If the array has an integer dtype, it will be cast to float.
+        zero_center (bool): If True, subtract the mean (provided by `mean`) from each feature (column) of X.
+        max_value (float): If provided, values in X will be clipped to the range [-max_value, max_value] after scaling.
+        copy (bool): If True, a copy of X is made before performing any operations.
+        mean (np.ndarray): 1D array of means used for zero-centering each feature.
+        std (np.ndarray): 1D array of standard deviations used to scale each feature.
+    Returns
+        (np.ndarray) The scaled (and optionally clipped) array.
+    """
     if copy:
         X = X.copy()
 
@@ -56,6 +68,32 @@ def preprocess_train(
         min_counts: int = 1, 
         filter_top_genes: bool = True, 
         n_top_genes: int=1000):
+    """
+    Preprocess an AnnData object for training by performing filtering, normalization, log transformation,
+    and scaling.
+
+    This function applies several preprocessing steps on a training dataset:
+      - Optionally filters out genes with fewer than `min_counts` counts.
+      - Identifies highly variable genes and subsets the data accordingly.
+      - Normalizes the data per cell by total counts.
+      - Applies log1p transformation (log(x + 1)).
+      - Scales each gene (feature) to unit variance and zero mean, returning the computed mean and std for use in evaluation.
+
+    Args:
+        adata (ad.AnnData): Annotated data matrix to preprocess.  
+        log_transform (bool, optional): If True, apply log1p transformation to the data. Defaults to True.  
+        normalize_per_cell (bool, optional): If True, normalize counts per cell (total-count normalization). Defaults to True.  
+        normalize_per_gene (bool, optional): If True, scale genes to zero mean and unit variance. Defaults to True.  
+        filter_min_counts (bool, optional): If True, filter out genes that do not have at least `min_counts` counts. Defaults to True.  
+        min_counts (int, optional): Minimum number of counts required for a gene to be kept. Defaults to 1.  
+        filter_top_genes (bool, optional): If True, select the top highly-variable genes. Defaults to True.  
+        n_top_genes (int, optional): Number of top highly-variable genes to select. Defaults to 1000.  
+
+
+    Returns
+        _mean (np.ndarray): The per-gene mean computed during scaling (if `normalize_per_gene` is True). Otherwise, None.
+        _std : (np.ndarray): The per-gene standard deviation computed during scaling (if `normalize_per_gene` is True). Otherwise, None.
+    """
 
     # filter out genes with less than 1 count in the train set
     if filter_min_counts:
@@ -97,8 +135,30 @@ def preprocess_eval(
         normalize_per_gene: bool = True,
         mean_train: Optional[np.ndarray] = None, 
         std_train: Optional[np.ndarray] = None):
+    """
+    Preprocess an AnnData object for evaluation using the gene selection and scaling parameters from training.
 
+    This function preprocesses an evaluation dataset by:
+      - Subsetting the genes to those provided in `genes_to_keep` (which should match the training set).
+      - Normalizing counts per cell.
+      - Applying log1p transformation.
+      - Scaling each gene using the provided training set mean and standard deviation.
+
+    Args
+        adata (ad.AnnData): Annotated data matrix to preprocess.  
+        genes_to_keep (List[str]): List of gene names to retain; these should correspond to genes selected during training.  
+        log_transform (bool, optional): If True, apply log1p transformation to the data. Defaults to True.  
+        normalize_per_cell (bool, optional): If True, normalize counts per cell (total-count normalization). Defaults to True.  
+        normalize_per_gene (bool, optional): If True, scale genes using the provided training statistics. Defaults to True.  
+        mean_train (Optional[np.ndarray], optional): The per-gene mean from the training set. Must be provided if `normalize_per_gene` is True. Defaults to None.  
+        std_train (Optional[np.ndarray], optional): The per-gene standard deviation from the training set. Must be provided if `normalize_per_gene` is True. Defaults to None.  
+
+    Returns: None, None. this function modifies `adata` in place.
+    """
+
+    # assertions nad verifications
     assert np.all([gene in adata.var_names for gene in genes_to_keep]), "preprocess_eval: all genes_to_keep must be included in the data"
+
     if normalize_per_gene:
         assert mean_train is not None, "if normalize_per_gene, mean_train must be given"
         assert std_train is not None, "if normalize_per_gene, std_train must be given"
@@ -135,6 +195,12 @@ def preprocess(
         mean_train: Optional[np.ndarray] = None, 
         std_train: Optional[np.ndarray] = None
         ):
+    """
+    Unified preprocessing function for both training and evaluation datasets.
+
+    This wrapper function delegates preprocessing to either the training or evaluation preprocessing routines
+    based on the `is_train_set` flag.
+    """
 
     if is_train_set:
         return preprocess_train(

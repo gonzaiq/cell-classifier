@@ -13,6 +13,9 @@ data_dir = "data"
 figs_dir = "figs"
 
 def main():
+    """
+    Perform data analysis with of an annData and a given pre-processing. Plots are sabed in the figs_dir directory.
+    """
 
     # read data
     data_pth = os.path.join(data_dir, 'cell_w_split.h5ad')

@@ -6,9 +6,10 @@ import numpy as np
 from src.data_processing import preprocess
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
-from typing import Dict
+from typing import Dict, Tuple
 
 class CustomDataset(Dataset):
+
     def __init__(
             self, 
             data_pth: str, 
@@ -22,21 +23,61 @@ class CustomDataset(Dataset):
             keep_ratio: float = 1.0,
             use_precomputed_stats_and_features: bool = True
             ):
+        """
+        Initializes the CustomDataset.
+
+        Args:
+            data_pth (str): Path to the input data file in h5ad format.
+            split (str): Which data split to load. Must be one of 'train', 'valid', or 'test'.
+            args_normalization (Dict): Dictionary containing normalization parameters. 
+                Expected keys include 'filter_top_genes', 'filter_min_counts', and 'normalize_per_gene'.
+            genes_to_keep (Optional[List[str]]): List of gene names to retain. Required if using precomputed stats
+                and either filtering by top genes or minimal counts.
+            mean_per_gene (Optional[np.ndarray]): Precomputed mean values per gene for normalization.
+                Required if `args_normalization["normalize_per_gene"]` is True and precomputed stats are used.
+            std_per_gene (Optional[np.ndarray]): Precomputed standard deviation per gene for normalization.
+                Required if `args_normalization["normalize_per_gene"]` is True and precomputed stats are used.
+            max_value (int): Maximum gene expression value for discretization/binning. Default is 260.
+            num_bins (int): Number of bins to map gene expression values into. Default is 10.
+            keep_ratio (float): Fraction of samples to retain. If less than 1.0, a subset is randomly selected.
+            use_precomputed_stats_and_features (bool): Flag indicating whether to use precomputed statistics 
+                and features. When True, required parameters must be provided; otherwise, they should be left as None.
+        """
+
+        # assertions and verifications
 
         assert split in ["train", "valid", "test"], f"Split {split} is not supported"
 
         if use_precomputed_stats_and_features:
             if args_normalization["filter_top_genes"] or args_normalization["filter_min_counts"]:
-                assert genes_to_keep is not None, f"genes_to_keep should be provided if use_precomputed_stats_and_features is set, but got {genes_to_keep}"
+                assert genes_to_keep is not None, (
+                    f"genes_to_keep should be provided if use_precomputed_stats_and_features is set, "
+                    f"but got {genes_to_keep}"
+                )
             if args_normalization["normalize_per_gene"]:
-                assert mean_per_gene is not None, f"mean_per_gene should be provided if use_precomputed_stats_and_features is set, but got {mean_per_gene}"
-                assert std_per_gene is not None, f"std_per_gene should be provided if use_precomputed_stats_and_features is set, but got {std_per_gene}"
+                assert mean_per_gene is not None, (
+                    f"mean_per_gene should be provided if use_precomputed_stats_and_features is set, "
+                    f"but got {mean_per_gene}"
+                )
+                assert std_per_gene is not None, (
+                    f"std_per_gene should be provided if use_precomputed_stats_and_features is set, "
+                    f"but got {std_per_gene}"
+                )
         else:
             if args_normalization["filter_top_genes"] or args_normalization["filter_min_counts"]:
-                assert genes_to_keep is None, f"genes_to_keep should not be provided if use_precomputed_stats_and_features is unset, but got {genes_to_keep}"
+                assert genes_to_keep is None, (
+                    f"genes_to_keep should not be provided if use_precomputed_stats_and_features is unset, "
+                    f"but got {genes_to_keep}"
+                )
             if args_normalization["normalize_per_gene"]:
-                assert mean_per_gene is None, f"mean_per_gene should not be provided if use_precomputed_stats_and_features is unset, but got {mean_per_gene}"
-                assert std_per_gene is None, f"std_per_gene should not be provided if use_precomputed_stats_and_features is unset, but got {std_per_gene}"
+                assert mean_per_gene is None, (
+                    f"mean_per_gene should not be provided if use_precomputed_stats_and_features is unset, "
+                    f"but got {mean_per_gene}"
+                )
+                assert std_per_gene is None, (
+                    f"std_per_gene should not be provided if use_precomputed_stats_and_features is unset, "
+                    f"but got {std_per_gene}"
+                )
 
         self.split = split
 
@@ -75,11 +116,11 @@ class CustomDataset(Dataset):
         self.class_weights = 1. / class_counts.float()
         self.sample_weights = self.class_weights[torch.tensor(self.labels)]  
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Returns the number of samples in the dataset"""
         return len(self.data)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Returns a single sample from the dataset"""
         x = self.data[idx].X.toarray()
         y = self.data[idx].obs["encoded_class"].iloc[0]

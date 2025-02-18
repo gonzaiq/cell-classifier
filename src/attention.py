@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+from typing import Tuple
 
 class CustomMultiheadAttention(nn.Module):
     """"
@@ -7,6 +8,13 @@ class CustomMultiheadAttention(nn.Module):
     """
 
     def __init__(self, embed_dim: int, num_heads: int):
+        """
+        Args:
+            embed_dim (int): embedding dimension
+            num_heads (int): number of attention heads
+        
+        Note: each attention head will have embedding of dimension embed_dim // num_heads. embed_dim must be divisible by num_heads.
+        """
         super().__init__()
 
         assert embed_dim % num_heads == 0, "The embedding dimension must be divisible by the number of heads"
@@ -24,7 +32,18 @@ class CustomMultiheadAttention(nn.Module):
         # linear projection
         self.out_linear = nn.Linear(embed_dim, embed_dim)
     
-    def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor):
+    def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor,]:
+        """
+        Forward function of the attention mechanism.
+
+        Args:
+            query (torch.Tensor): query with dimensions (batch, seq, embed_dim)
+            key (torch.Tensor): key with dimensions (batch, seq, embed_dim)
+            value (torch.Tensor): value with dimensions (batch, seq, embed_dim)
+
+        Returns:
+            att_out, att_weights: Tuple containing the output of the attention and the attention weights for combining the embeddings
+        """
 
         batch_dim, seq_dim, embed_dim = query.shape
 

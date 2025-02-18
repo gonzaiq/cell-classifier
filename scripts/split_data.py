@@ -9,6 +9,11 @@ test_ratio = 0.2
 valid_ratio = 0.2
 
 def main():
+    """"
+    Performs train, valid, and test splits.
+
+    Writes and annData with the splits incorporated.
+    """
 
     # open cells file
     cells = np.load(os.path.join(data_dir, "cells.npy"), allow_pickle=True).ravel()[0]
@@ -44,7 +49,7 @@ def main():
     print("Training set: ", len(adata.obs[adata.obs["split"] == "train"]))
     print("Validation set: ", len(adata.obs[adata.obs["split"] == "valid"]))
     print("Test set: ", len(adata.obs[adata.obs["split"] == "test"]))
-    print("Unassigned: ", len(adata.obs[adata.obs["split"] == "teunassignedst"]))
+    print("Unassigned: ", len(adata.obs[adata.obs["split"] == "unassigned"]))
     print("Total: ", len(adata))
 
     # save the AnnData object to a file
