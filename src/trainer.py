@@ -42,9 +42,6 @@ class CellCLassificationTrainer(pl.LightningModule):
         self.train_y = []
         self.train_y_pred = []
 
-        # confusion matrix
-        self.train_cm = None
-
     def init_validation_metrics(self):
         """Initializes validation metrics including loss, accuracy, and confusion matrix components."""
 
@@ -55,9 +52,6 @@ class CellCLassificationTrainer(pl.LightningModule):
         self.val_y = []
         self.val_y_pred = []
 
-        # confusion matrix
-        self.val_cm = None
-
     def init_test_metrics(self):
         """Initializes test metrics including loss, accuracy, and confusion matrix components."""
 
@@ -67,9 +61,6 @@ class CellCLassificationTrainer(pl.LightningModule):
         # accumulate for metrics
         self.test_y = []
         self.test_y_pred = []
-
-        # confusion matrix
-        self.test_cm = None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
