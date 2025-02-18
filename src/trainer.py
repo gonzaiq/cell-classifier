@@ -14,16 +14,18 @@ class CellCLassificationTrainer(pl.LightningModule):
     
     Attributes:
         model (nn.Module): The neural network model to be trained.
-        base_lr (float): The learning rate for the optimizer.
         criterion (Callable): The loss function used for training.
+        base_lr (float): The learning rate for the optimizer.
+        weight_decay (float): weight decay parameter.
     """
 
-    def __init__(self, model: nn.Module, criterion: Callable = F.cross_entropy, base_lr: float = 1e-3):
+    def __init__(self, model: nn.Module, criterion: Callable = F.cross_entropy, base_lr: float = 1e-3, weight_decay: float = 0.0):
 
         super().__init__()
         self.model = model
         self.base_lr = base_lr
         self.criterion = criterion
+        self.weight_decay = weight_decay
 
         # initialize metrics
         self.init_train_metrics()
@@ -245,4 +247,4 @@ class CellCLassificationTrainer(pl.LightningModule):
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         """Configures the optimizer for training."""
-        return torch.optim.Adam(self.parameters(), lr=self.base_lr)
+        return torch.optim.AdamW(self.parameters(), lr=self.base_lr, weight_decay=self.weight_decay)

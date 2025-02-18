@@ -32,8 +32,8 @@ def train_and_validate(max_epochs):
     Performs training and validation of attention-based classifier.
     """
 
-    train_bs = 256 # 256
-    valid_bs = 128
+    train_bs = 64 # 256
+    valid_bs = 64
     num_workers = 8
 
     # read data
@@ -49,6 +49,7 @@ def train_and_validate(max_epochs):
     num_heads = 8
     fc_hidden_dim = embed_dim * 4
     drop_prob = 0.1
+    weight_decay = 0.01
 
     # initialize Comet experiment
     project_name = "cell-classif"
@@ -71,7 +72,7 @@ def train_and_validate(max_epochs):
         "filter_top_genes": True,
         "filter_min_counts": False,
         "min_counts": 3, 
-        "n_top_genes": 1000
+        "n_top_genes": 2000
     }   
 
     max_value = 6 if args_normalization["log_transform"] else 260
@@ -125,7 +126,7 @@ def train_and_validate(max_epochs):
         mode="max",
         save_top_k=1,
         dirpath="checkpoints/",
-        filename=f"best_model_embed_dim_{embed_dim}_num_layers_{num_layers}_base_lr_{base_lr}_num_expression_levels_{num_expression_levels}_bs_{train_bs}_drop_prob_{drop_prob}"
+        filename=f"best_model_embed_dim_{embed_dim}_num_layers_{num_layers}_base_lr_{base_lr}_num_expression_levels_{num_expression_levels}_bs_{train_bs}_drop_prob_{drop_prob}_wdecay_{weight_decay}"
     )
 
     # Trainer initialization
@@ -137,7 +138,8 @@ def train_and_validate(max_epochs):
     trainer_module = CellCLassificationTrainer(
         model=model,
         criterion=nn.CrossEntropyLoss(**loss_args),
-        base_lr=base_lr
+        base_lr=base_lr,
+        weight_decay=weight_decay
     )
 
     trainer = Trainer(
